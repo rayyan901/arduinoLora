@@ -1,0 +1,80 @@
+#include <Wire.h>
+
+const int i2c_addr = 0x68;
+
+#define BMI160_CMD_ACC_MODE_NORMAL  0x11
+#define BMI160_CMD_SOFT_RESET       0xB6
+#define BMI160_RA_CMD               0x7E
+
+#define RAD_2_DEG          57.29578 // [°/rad]
+#define ACC_LSB_2_G        16384.0 
+
+float accX, accY, accZ;
+float angleX,angleY;
+int ax,ay,az;
+
+void setup() {
+  delay(100);
+  // put your setup code here, to run once:
+ Wire.begin();                // join i2c bus (address optional for master)
+
+  Serial.begin(9600);          // start serial communication at 9600bps
+
+  //Wire.beginTransmission(i2c_addr);
+
+ Wire.beginTransmission(i2c_addr);
+
+ Wire.write(byte(BMI160_RA_CMD)); 
+ Wire.write(byte(BMI160_CMD_SOFT_RESET)); 
+ Wire.endTransmission(true);  
+ delay(10);
+ Wire.beginTransmission(i2c_addr);
+ Wire.write(byte(BMI160_RA_CMD)); 
+ Wire.write(byte(BMI160_CMD_ACC_MODE_NORMAL)); 
+ Wire.endTransmission(true);  
+ delay(10);
+  Serial.println("initialised...  "); 
+ delay(1000);
+}
+
+int reading = 0, lsb=0,msb=0;
+
+
+
+void loop() {
+  // put your main code here, to run repeatedly:
+ Wire.beginTransmission(i2c_addr);
+
+ Wire.write(byte(0x12)); 
+ Wire.endTransmission(false);
+  Wire.requestFrom(i2c_addr, 6, true); // Read 6 registers total, each axis value is stored in 2 registers
+  //For a range of +-2g, we need to divide the raw values by 16384, according to the datasheet
+
+  ax = (Wire.read()  | Wire.read() << 8);// / 16384.0; // X-axis value
+  ay = (Wire.read()  | Wire.read() << 8); // 16384.0; // Y-axis value
+  az = (Wire.read()  | Wire.read() << 8); // / 16384.0; // Z-axis value
+
+
+ Wire.endTransmission(true);  
+
+  accX = ((float)ax) / ACC_LSB_2_G;
+  accY = ((float)ay) / ACC_LSB_2_G;
+  accZ = ((float)az) / ACC_LSB_2_G;
+
+ angleX = asin(accX) * RAD_2_DEG;
+  //Serial.println(angleX);
+  angleY = asin(accY) * RAD_2_DEG;
+
+
+ 
+ Serial.print("X:  "); 
+  //Serial.print(AccX); 
+  Serial.print(angleX); 
+ Serial.print("   Y: ");
+   //Serial.println(AccY);
+    Serial.println(angleY); 
+   delay(1000); 
+
+ 
+ 
+}
